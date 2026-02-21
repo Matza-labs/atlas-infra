@@ -1,0 +1,120 @@
+# PipelineAtlas — Local Development Stack
+# Start with: docker-compose up -d
+
+version: "3.9"
+
+services:
+  # ───────────────────────────────────────────────
+  # Infrastructure
+  # ───────────────────────────────────────────────
+
+  redis:
+    image: redis:7-alpine
+    container_name: atlas-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: atlas-postgres
+    environment:
+      POSTGRES_USER: atlas
+      POSTGRES_PASSWORD: atlas_dev
+      POSTGRES_DB: atlas_graph
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atlas"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ───────────────────────────────────────────────
+  # MVP Services (Phase 1)
+  # ───────────────────────────────────────────────
+
+  # scanner:
+  #   build:
+  #     context: ../atlas-scanner
+  #     dockerfile: ../atlas-infra/docker/Dockerfile.scanner
+  #   container_name: atlas-scanner
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   environment:
+  #     REDIS_URL: redis://redis:6379
+  #   volumes:
+  #     - ../atlas-scanner:/app
+  #     - ../atlas-sdk:/sdk
+
+  # parser:
+  #   build:
+  #     context: ../atlas-parser
+  #     dockerfile: ../atlas-infra/docker/Dockerfile.parser
+  #   container_name: atlas-parser
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   environment:
+  #     REDIS_URL: redis://redis:6379
+  #   volumes:
+  #     - ../atlas-parser:/app
+  #     - ../atlas-sdk:/sdk
+
+  # graph:
+  #   build:
+  #     context: ../atlas-graph
+  #     dockerfile: ../atlas-infra/docker/Dockerfile.graph
+  #   container_name: atlas-graph
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #     postgres:
+  #       condition: service_healthy
+  #   environment:
+  #     REDIS_URL: redis://redis:6379
+  #     DATABASE_URL: postgresql://atlas:atlas_dev@postgres:5432/atlas_graph
+  #   volumes:
+  #     - ../atlas-graph:/app
+  #     - ../atlas-sdk:/sdk
+
+  # rule-engine:
+  #   build:
+  #     context: ../atlas-rule-engine
+  #     dockerfile: ../atlas-infra/docker/Dockerfile.rule-engine
+  #   container_name: atlas-rule-engine
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   environment:
+  #     REDIS_URL: redis://redis:6379
+  #   volumes:
+  #     - ../atlas-rule-engine:/app
+  #     - ../atlas-sdk:/sdk
+
+  # report:
+  #   build:
+  #     context: ../atlas-report
+  #     dockerfile: ../atlas-infra/docker/Dockerfile.report
+  #   container_name: atlas-report
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   environment:
+  #     REDIS_URL: redis://redis:6379
+  #   volumes:
+  #     - ../atlas-report:/app
+  #     - ../atlas-sdk:/sdk
+
+volumes:
+  redis_data:
+  postgres_data:
