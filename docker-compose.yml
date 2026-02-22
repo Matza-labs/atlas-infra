@@ -1,13 +1,6 @@
-# PipelineAtlas — Local Development Stack
-# Start with: docker-compose up -d
-
-version: "3.9"
+version: '3.8'
 
 services:
-  # ───────────────────────────────────────────────
-  # Infrastructure
-  # ───────────────────────────────────────────────
-
   redis:
     image: redis:7-alpine
     container_name: atlas-redis
@@ -15,106 +8,93 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+    networks:
+      - atlas_net
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:15-alpine
     container_name: atlas-postgres
     environment:
-      POSTGRES_USER: atlas
-      POSTGRES_PASSWORD: atlas_dev
-      POSTGRES_DB: atlas_graph
+      POSTGRES_DB: pipelineatlas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U atlas"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - atlas_net
 
-  # ───────────────────────────────────────────────
-  # MVP Services (Phase 1)
-  # ───────────────────────────────────────────────
+  atlas-scanner:
+    build:
+      context: ../
+      dockerfile: atlas-infra/docker/Dockerfile.scanner
+    container_name: atlas-scanner
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - atlas_net
 
-  # scanner:
-  #   build:
-  #     context: ../atlas-scanner
-  #     dockerfile: ../atlas-infra/docker/Dockerfile.scanner
-  #   container_name: atlas-scanner
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
-  #   environment:
-  #     REDIS_URL: redis://redis:6379
-  #   volumes:
-  #     - ../atlas-scanner:/app
-  #     - ../atlas-sdk:/sdk
+  atlas-parser:
+    build:
+      context: ../
+      dockerfile: atlas-infra/docker/Dockerfile.parser
+    container_name: atlas-parser
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+      - atlas-scanner
+    networks:
+      - atlas_net
 
-  # parser:
-  #   build:
-  #     context: ../atlas-parser
-  #     dockerfile: ../atlas-infra/docker/Dockerfile.parser
-  #   container_name: atlas-parser
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
-  #   environment:
-  #     REDIS_URL: redis://redis:6379
-  #   volumes:
-  #     - ../atlas-parser:/app
-  #     - ../atlas-sdk:/sdk
+  atlas-graph:
+    build:
+      context: ../
+      dockerfile: atlas-infra/docker/Dockerfile.graph
+    container_name: atlas-graph
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DB_URL=postgresql://postgres:postgres@postgres:5432/pipelineatlas
+    depends_on:
+      - redis
+      - postgres
+      - atlas-parser
+    networks:
+      - atlas_net
 
-  # graph:
-  #   build:
-  #     context: ../atlas-graph
-  #     dockerfile: ../atlas-infra/docker/Dockerfile.graph
-  #   container_name: atlas-graph
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
-  #     postgres:
-  #       condition: service_healthy
-  #   environment:
-  #     REDIS_URL: redis://redis:6379
-  #     DATABASE_URL: postgresql://atlas:atlas_dev@postgres:5432/atlas_graph
-  #   volumes:
-  #     - ../atlas-graph:/app
-  #     - ../atlas-sdk:/sdk
+  atlas-rule-engine:
+    build:
+      context: ../
+      dockerfile: atlas-infra/docker/Dockerfile.rule-engine
+    container_name: atlas-rule-engine
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+      - atlas-graph
+    networks:
+      - atlas_net
 
-  # rule-engine:
-  #   build:
-  #     context: ../atlas-rule-engine
-  #     dockerfile: ../atlas-infra/docker/Dockerfile.rule-engine
-  #   container_name: atlas-rule-engine
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
-  #   environment:
-  #     REDIS_URL: redis://redis:6379
-  #   volumes:
-  #     - ../atlas-rule-engine:/app
-  #     - ../atlas-sdk:/sdk
+  atlas-report:
+    build:
+      context: ../
+      dockerfile: atlas-infra/docker/Dockerfile.report
+    container_name: atlas-report
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+      - atlas-rule-engine
+    networks:
+      - atlas_net
 
-  # report:
-  #   build:
-  #     context: ../atlas-report
-  #     dockerfile: ../atlas-infra/docker/Dockerfile.report
-  #   container_name: atlas-report
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
-  #   environment:
-  #     REDIS_URL: redis://redis:6379
-  #   volumes:
-  #     - ../atlas-report:/app
-  #     - ../atlas-sdk:/sdk
+networks:
+  atlas_net:
+    name: atlas_net
 
 volumes:
   redis_data:
-  postgres_data:
+  pg_data:
