@@ -91,6 +91,58 @@ services:
     networks:
       - atlas_net
 
+  atlas-api:
+    build:
+      context: ../atlas-api
+    container_name: atlas-api
+    environment:
+      - DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/pipelineatlas
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - atlas_net
+
+  atlas-ai:
+    build:
+      context: ../atlas-ai
+    container_name: atlas-ai
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - LLM_PROVIDER=ollama
+      - LLM_BASE_URL=http://host.docker.internal:11434
+    depends_on:
+      - redis
+    networks:
+      - atlas_net
+
+  atlas-log-analyzer:
+    build:
+      context: ../atlas-log-analyzer
+    container_name: atlas-log-analyzer
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - atlas_net
+
+  atlas-ui:
+    build:
+      context: ../atlas-ui
+    container_name: atlas-ui
+    environment:
+      - NEXT_PUBLIC_API_URL=http://atlas-api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - atlas-api
+    networks:
+      - atlas_net
+
 networks:
   atlas_net:
     name: atlas_net
@@ -98,3 +150,5 @@ networks:
 volumes:
   redis_data:
   pg_data:
+
+
