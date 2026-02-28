@@ -1,0 +1,30 @@
+{{- $workers := list "scanner" "parser" "graph" "rule-engine" "report" "log-analyzer" -}}
+{{- range $workers }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-{{ . }}
+  labels:
+    app: {{ . }}
+spec:
+  replicas: {{ $.Values.workers.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ . }}
+  template:
+    metadata:
+      labels:
+        app: {{ . }}
+    spec:
+      containers:
+        - name: {{ . }}
+          image: "{{ $.Values.workers.imageBase }}/atlas-{{ . }}:latest"
+          env:
+            - name: REDIS_URL
+              value: "redis://{{ $.Release.Name }}-redis:6379"
+            {{- if eq . "graph" }}
+            - name: DB_URL
+              value: "postgresql://{{ $.Values.postgres.auth.username }}:{{ $.Values.postgres.auth.password }}@{{ $.Release.Name }}-postgres:5432/{{ $.Values.postgres.auth.database }}"
+            {{- end }}
+---
+{{- end }}

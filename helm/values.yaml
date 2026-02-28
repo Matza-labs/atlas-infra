@@ -1,0 +1,27 @@
+global:
+  environment: production
+  tenantId: default
+
+api:
+  replicaCount: 2
+  image: "pipelineatlas/atlas-api:latest"
+
+ui:
+  replicaCount: 2
+  image: "pipelineatlas/atlas-ui:latest"
+
+workers:
+  replicaCount: 1
+  imageBase: "pipelineatlas"
+
+redis:
+  enabled: true
+  image: "redis:7-alpine"
+
+postgres:
+  enabled: true
+  image: "postgres:15-alpine"
+  auth:
+    username: postgres
+    password: postgres
+    database: pipelineatlas
