@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y git build-essential && rm -rf /var/lib/apt/lists/*
+
+COPY atlas-sdk /app/atlas-sdk
+RUN pip install -e /app/atlas-sdk
+
+COPY atlas-rule-engine /app/atlas-rule-engine
+RUN pip install -e /app/atlas-rule-engine
+
+WORKDIR /app/atlas-rule-engine
+ENV PYTHONPATH="/app/atlas-rule-engine:/app/atlas-sdk"
+
+CMD ["python", "-c", "import time; print('atlas-rule-engine ready'); time.sleep(864000)"]

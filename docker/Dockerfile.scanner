@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y git build-essential && rm -rf /var/lib/apt/lists/*
+
+# Copy SDK first
+COPY atlas-sdk /app/atlas-sdk
+RUN pip install -e /app/atlas-sdk
+
+# Copy service
+COPY atlas-scanner /app/atlas-scanner
+RUN pip install -e /app/atlas-scanner
+
+WORKDIR /app/atlas-scanner
+ENV PYTHONPATH="/app/atlas-scanner:/app/atlas-sdk"
+
+# Idle command for MVP (ready to execute scans manually or via exec)
+CMD ["python", "-c", "import time; print('atlas-scanner ready'); time.sleep(864000)"]

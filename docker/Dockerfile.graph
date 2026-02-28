@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y git build-essential libpq-dev gcc && rm -rf /var/lib/apt/lists/*
+
+COPY atlas-sdk /app/atlas-sdk
+RUN pip install -e /app/atlas-sdk
+
+COPY atlas-graph /app/atlas-graph
+RUN pip install -e /app/atlas-graph
+
+WORKDIR /app/atlas-graph
+ENV PYTHONPATH="/app/atlas-graph:/app/atlas-sdk"
+
+CMD ["python", "-c", "import time; print('atlas-graph ready'); time.sleep(864000)"]
