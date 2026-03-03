@@ -5,6 +5,7 @@ global:
 api:
   replicaCount: 2
   image: "pipelineatlas/atlas-api:latest"
+  jwtSecret: "change-me-in-production"  # REQUIRED: set to a 64-char random string
 
 ui:
   replicaCount: 2

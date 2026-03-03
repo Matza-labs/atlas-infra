@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y git build-essential && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
 
 COPY atlas-sdk /app/atlas-sdk
 RUN pip install -e /app/atlas-sdk
@@ -13,4 +13,4 @@ RUN pip install -e /app/atlas-parser
 WORKDIR /app/atlas-parser
 ENV PYTHONPATH="/app/atlas-parser:/app/atlas-sdk"
 
-CMD ["python", "-c", "import time; print('atlas-parser ready'); time.sleep(864000)"]
+CMD ["python", "-m", "atlas_parser"]

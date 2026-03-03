@@ -16,5 +16,4 @@ RUN pip install -e /app/atlas-scanner
 WORKDIR /app/atlas-scanner
 ENV PYTHONPATH="/app/atlas-scanner:/app/atlas-sdk"
 
-# Idle command for MVP (ready to execute scans manually or via exec)
-CMD ["python", "-c", "import time; print('atlas-scanner ready'); time.sleep(864000)"]
+CMD ["python", "-m", "atlas_scanner"]

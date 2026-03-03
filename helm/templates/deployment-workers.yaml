@@ -6,6 +6,8 @@ metadata:
   name: {{ $.Release.Name }}-{{ . }}
   labels:
     app: {{ . }}
+    app.kubernetes.io/name: pipelineatlas
+    app.kubernetes.io/instance: {{ $.Release.Name }}
 spec:
   replicas: {{ $.Values.workers.replicaCount }}
   selector:
@@ -24,7 +26,34 @@ spec:
               value: "redis://{{ $.Release.Name }}-redis:6379"
             {{- if eq . "graph" }}
             - name: DB_URL
-              value: "postgresql://{{ $.Values.postgres.auth.username }}:{{ $.Values.postgres.auth.password }}@{{ $.Release.Name }}-postgres:5432/{{ $.Values.postgres.auth.database }}"
+              value: "postgresql://$(ATLAS_API_DB_USER):$(ATLAS_API_DB_PASSWORD)@{{ $.Release.Name }}-postgres:5432/{{ $.Values.postgres.auth.database }}"
+            - name: ATLAS_API_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-db-credentials
+                  key: ATLAS_API_DB_USER
+            - name: ATLAS_API_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-db-credentials
+                  key: ATLAS_API_DB_PASSWORD
             {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import os; exit(0)"
+            initialDelaySeconds: 10
+            periodSeconds: 60
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
 ---
 {{- end }}

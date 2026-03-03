@@ -96,7 +96,13 @@ services:
       context: ../atlas-api
     container_name: atlas-api
     environment:
-      - DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/pipelineatlas
+      - ATLAS_API_DB_HOST=postgres
+      - ATLAS_API_DB_PORT=5432
+      - ATLAS_API_DB_NAME=pipelineatlas
+      - ATLAS_API_DB_USER=postgres
+      - ATLAS_API_DB_PASSWORD=postgres
+      - ATLAS_API_ENVIRONMENT=development
+      - ATLAS_API_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://atlas-ui:3000
       - REDIS_URL=redis://redis:6379
     ports:
       - "8000:8000"

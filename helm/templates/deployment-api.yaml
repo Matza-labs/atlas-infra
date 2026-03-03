@@ -4,6 +4,8 @@ metadata:
   name: {{ .Release.Name }}-api
   labels:
     app: api
+    app.kubernetes.io/name: pipelineatlas
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.api.replicaCount }}
   selector:
@@ -20,10 +22,54 @@ spec:
           ports:
             - containerPort: 8000
           env:
-            - name: DATABASE_URL
-              value: "postgresql+psycopg://{{ .Values.postgres.auth.username }}:{{ .Values.postgres.auth.password }}@{{ .Release.Name }}-postgres:5432/{{ .Values.postgres.auth.database }}"
+            - name: ATLAS_API_DB_HOST
+              value: "{{ .Release.Name }}-postgres"
+            - name: ATLAS_API_DB_PORT
+              value: "5432"
+            - name: ATLAS_API_DB_NAME
+              value: {{ .Values.postgres.auth.database }}
+            - name: ATLAS_API_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-db-credentials
+                  key: ATLAS_API_DB_USER
+            - name: ATLAS_API_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-db-credentials
+                  key: ATLAS_API_DB_PASSWORD
+            - name: ATLAS_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-api-secrets
+                  key: ATLAS_JWT_SECRET
+            - name: ATLAS_API_ENVIRONMENT
+              value: {{ .Values.global.environment | default "production" }}
             - name: REDIS_URL
               value: "redis://{{ .Release.Name }}-redis:6379"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
 ---
 apiVersion: v1
 kind: Service
